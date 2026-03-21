@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# bloom-generate-cursors — symlink active cursor theme into ~/.local/share/bloom/cursors
+#
+# After running, ~/.local/share/bloom/cursors -> active theme's cursors/ directory.
+# Run on login and whenever the cursor theme changes.
+
+set -euo pipefail
+
+BLOOM_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/bloom"
+LINK="$BLOOM_DIR/cursors"
+
+# ── Resolve current cursor theme ──────────────────────────────────────────────
+get_cursor_theme() {
+    # 1. gsettings (most authoritative when running under GNOME/GTK)
+    local t
+    t=$(gsettings get org.gnome.desktop.interface cursor-theme 2>/dev/null | tr -d "'\"") && [[ -n "$t" ]] && echo "$t" && return
+
+    # 2. gtk-3.0 settings.ini
+    for cfg in "$HOME/.config/gtk-3.0/settings.ini" "/etc/skel/.config/gtk-3.0/settings.ini"; do
+        [[ -f "$cfg" ]] || continue
+        t=$(grep -m1 "gtk-cursor-theme-name" "$cfg" 2>/dev/null | sed 's/.*=\s*//' | tr -d '[:space:]')
+        [[ -n "$t" ]] && echo "$t" && return
+    done
+
+    # 3. /etc/environment
+    t=$(grep -m1 "XCURSOR_THEME" /etc/environment 2>/dev/null | sed 's/.*=//')
+    [[ -n "$t" ]] && echo "$t" && return
+
+    # 4. Current XCURSOR_THEME env var
+    echo "${XCURSOR_THEME:-Adwaita}"
+}
+
+THEME=$(get_cursor_theme)
+
+# ── Find the cursors directory ────────────────────────────────────────────────
+CURSORS_DIR=""
+for base in "$HOME/.local/share/icons" "/usr/share/icons"; do
+    candidate="$base/$THEME/cursors"
+    if [[ -d "$candidate" ]]; then
+        CURSORS_DIR="$candidate"
+        break
+    fi
+done
+
+if [[ -z "$CURSORS_DIR" ]]; then
+    echo "bloom-generate-cursors: cursor theme '$THEME' not found, falling back to Adwaita"
+    CURSORS_DIR="/usr/share/icons/Adwaita/cursors"
+fi
+
+# ── Create symlink ─────────────────────────────────────────────────────────────
+mkdir -p "$BLOOM_DIR"
+
+# Remove old symlink/dir
+if [[ -L "$LINK" ]]; then
+    rm "$LINK"
+elif [[ -d "$LINK" ]]; then
+    rm -rf "$LINK"
+fi
+
+if [[ -d "$CURSORS_DIR" ]]; then
+    ln -sf "$CURSORS_DIR" "$LINK"
+    echo "bloom-generate-cursors: $LINK -> $CURSORS_DIR"
+else
+    echo "bloom-generate-cursors: cursors directory not found at $CURSORS_DIR"
+    exit 1
+fi
+
+# Also write the theme name for other scripts to read
+echo "$THEME" > "$BLOOM_DIR/.cursor-theme"

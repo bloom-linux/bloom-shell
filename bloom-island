@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Bloom Island — EWW dynamic island overlay
+
+CONFIG_DIR="$HOME/.config/eww"
+EWW="/usr/bin/eww --config $CONFIG_DIR"
+
+# Always sync fresh layout/scripts from system template
+mkdir -p "$CONFIG_DIR/scripts"
+\cp -f /etc/xdg/eww/eww.yuck "$CONFIG_DIR/eww.yuck"
+\cp -f /etc/xdg/eww/scripts/* "$CONFIG_DIR/scripts/"
+chmod +x "$CONFIG_DIR/scripts/"*.sh 2>/dev/null || true
+
+# Sync eww.scss: always copy the template, then re-apply current colors on top
+\cp -f /etc/xdg/eww/eww.scss "$CONFIG_DIR/eww.scss"
+bloom-generate-colors --no-reload 2>/dev/null || true
+
+# Kill any stale instance
+$EWW kill 2>/dev/null || true
+pkill -f "notif-daemon.sh" 2>/dev/null || true
+sleep 0.3
+
+# Start notification interceptor in background
+"$CONFIG_DIR/scripts/notif-daemon.sh" &
+
+# Open unified bar+island window
+$EWW open bloom-bar

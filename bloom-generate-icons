@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""
+bloom-generate-icons — symlink active icon theme icons into ~/.local/share/bloom/icons/
+
+Run once on login and whenever the icon theme changes.
+Other bloom scripts reference ~/.local/share/bloom/icons/<name>.{svg,png}
+without needing to know the actual theme path.
+"""
+import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, Gdk
+import configparser, os, sys
+
+# ── Icon slots → candidate icon names (first match wins) ─────────────────────
+ICON_SLOTS = {
+    # Bloom UI
+    "launcher":         ["distributor-logo-archlinux", "archlinux", "start-here", "application-x-executable"],
+    "browser":          ["firefox", "chromium", "brave-browser", "web-browser", "internet-web-browser"],
+    "install":          ["system-software-install", "package-manager", "pamac"],
+    "power":            ["system-shutdown", "system-power"],
+    "network":          ["network-wireless", "network-wired", "nm-device-wireless"],
+    "network-vpn":      ["network-vpn", "network-vpn-symbolic"],
+    "bluetooth":        ["bluetooth", "bluetooth-active"],
+    "bluetooth-off":    ["bluetooth-disabled", "bluetooth-inactive"],
+    # Volume
+    "volume-high":      ["audio-volume-high"],
+    "volume-medium":    ["audio-volume-medium"],
+    "volume-low":       ["audio-volume-low"],
+    "volume-muted":     ["audio-volume-muted"],
+    # Battery
+    "battery-100":      ["battery-100", "battery-full-charged", "battery-full"],
+    "battery-80":       ["battery-080", "battery-good"],
+    "battery-60":       ["battery-060", "battery-good"],
+    "battery-40":       ["battery-040", "battery-low"],
+    "battery-20":       ["battery-020", "battery-caution"],
+    "battery-10":       ["battery-010", "battery-caution-charging", "battery-empty"],
+    "battery-charging": ["battery-full-charging", "battery-charging"],
+    # Brightness
+    "brightness":       ["display-brightness", "video-display"],
+    "brightness-low":   ["display-brightness-low", "video-display-symbolic"],
+    # Apps
+    "terminal":         ["utilities-terminal", "terminal", "kitty", "alacritty", "foot"],
+    "files":            ["folder", "system-file-manager", "thunar", "nautilus"],
+    "settings":         ["preferences-system", "system-settings", "gnome-control-center"],
+    "text-editor":      ["accessories-text-editor", "gedit", "mousepad", "kate"],
+    "video":            ["multimedia-video-player", "vlc", "celluloid", "mpv"],
+    "music":            ["multimedia-player", "multimedia-audio-player", "rhythmbox", "elisa"],
+    "image-viewer":     ["image-viewer", "eog", "feh", "viewnior", "loupe"],
+    "mail":             ["internet-mail", "mail-client", "thunderbird"],
+    "calendar":         ["office-calendar", "calendar", "gnome-calendar"],
+    "calculator":       ["accessories-calculator", "gnome-calculator"],
+    "screenshots":      ["camera", "screenshot", "gnome-screenshot"],
+    # System actions
+    "restart":          ["system-restart", "system-reboot"],
+    "suspend":          ["system-suspend", "sleep"],
+    "lock":             ["system-lock-screen", "lock"],
+    "logout":           ["system-log-out", "logout"],
+    "hibernate":        ["system-hibernate"],
+    # Notifications & Updates
+    "notification":     ["notification-new", "notification"],
+    "notification-none":["notification", "notification-symbolic"],
+    "update":           ["system-software-update", "software-update-available"],
+    # User
+    "user":             ["avatar-default", "user-info", "system-users"],
+    # Media controls
+    "media-play":       ["media-playback-start"],
+    "media-pause":      ["media-playback-pause"],
+    "media-stop":       ["media-playback-stop"],
+    "media-next":       ["media-skip-forward"],
+    "media-prev":       ["media-skip-backward"],
+}
+
+ICON_SIZE = 48
+
+
+def get_theme_name():
+    for cfg in [
+        os.path.expanduser("~/.config/gtk-4.0/settings.ini"),
+        os.path.expanduser("~/.config/gtk-3.0/settings.ini"),
+        "/etc/skel/.config/gtk-3.0/settings.ini",
+    ]:
+        if not os.path.exists(cfg):
+            continue
+        try:
+            cp = configparser.ConfigParser()
+            content = open(cfg).read()
+            if "[Settings]" not in content:
+                content = "[Settings]\n" + content
+            cp.read_string(content)
+            t = cp.get("Settings", "gtk-icon-theme-name", fallback="")
+            if t:
+                return t
+        except Exception:
+            pass
+    # Fallback: gsettings
+    try:
+        import subprocess
+        t = subprocess.run(
+            ["gsettings", "get", "org.gnome.desktop.interface", "icon-theme"],
+            capture_output=True, text=True
+        ).stdout.strip().strip("'\"")
+        if t:
+            return t
+    except Exception:
+        pass
+    return "hicolor"
+
+
+def resolve_icons(theme_name):
+    display = Gdk.Display.get_default()
+    if not display:
+        return {}
+    theme = Gtk.IconTheme.get_for_display(display)
+    # Force load the requested theme
+    theme.set_theme_name(theme_name)
+
+    results = {}
+    for slot, candidates in ICON_SLOTS.items():
+        for candidate in candidates:
+            paintable = theme.lookup_icon(
+                candidate, None, ICON_SIZE, 1,
+                Gtk.TextDirection.NONE, 0
+            )
+            if paintable:
+                path = None
+                # Try to get file path from the paintable
+                try:
+                    f = paintable.get_file()
+                    if f:
+                        path = f.get_path()
+                except Exception:
+                    pass
+                if path and os.path.exists(path):
+                    results[slot] = path
+                    break
+    return results
+
+
+def apply_symlinks(resolved):
+    dest_dir = os.path.expanduser("~/.local/share/bloom/icons")
+    os.makedirs(dest_dir, exist_ok=True)
+
+    for slot, src in resolved.items():
+        ext = os.path.splitext(src)[1]
+        # Use canonical extension; fall back to .png if not svg
+        link_name = f"{slot}{ext}"
+        link_path = os.path.join(dest_dir, link_name)
+
+        # Remove old symlinks for this slot (any extension)
+        for old_ext in [".svg", ".png", ".xpm"]:
+            old = os.path.join(dest_dir, f"{slot}{old_ext}")
+            if os.path.islink(old) or os.path.exists(old):
+                os.remove(old)
+
+        try:
+            os.symlink(src, link_path)
+        except Exception:
+            pass
+
+    # Write the theme name to a marker file so other scripts can read it
+    try:
+        open(os.path.join(dest_dir, ".theme"), "w").write(
+            os.path.basename(os.path.dirname(os.path.dirname(
+                next(iter(resolved.values()), "")))) if resolved else "")
+    except Exception:
+        pass
+
+
+def main():
+    theme_name = get_theme_name()
+
+    # We need a running GTK app context to use IconTheme
+    app = Gtk.Application(application_id="bloom.generate-icons")
+
+    def on_activate(_app):
+        resolved = resolve_icons(theme_name)
+        apply_symlinks(resolved)
+        print(f"bloom-generate-icons: {len(resolved)} icons from theme '{theme_name}'", flush=True)
+        _app.quit()
+
+    app.connect("activate", on_activate)
+    app.run(None)
+
+
+if __name__ == "__main__":
+    main()

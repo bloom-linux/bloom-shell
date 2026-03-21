@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk
+import configparser
+import os
+import sys
+
+def get_icon_path(icon_name, size=48):
+    # 1. Get theme from config
+    config_path = os.path.expanduser("~/.config/gtk-3.0/settings.ini")
+    if not os.path.exists(config_path):
+        config_path = "/etc/skel/.config/gtk-3.0/settings.ini"
+    
+    theme_name = "hicolor"
+    if os.path.exists(config_path):
+        try:
+            cp = configparser.ConfigParser()
+            with open(config_path) as f:
+                # Add dummy section for parsing if [Settings] is missing (rare)
+                content = f.read()
+                if "[Settings]" not in content:
+                    content = "[Settings]
+" + content
+                cp.read_string(content)
+                theme_name = cp.get("Settings", "gtk-icon-theme-name", fallback="hicolor")
+        except:
+            pass
+
+    # 2. Resolve path
+    theme = Gtk.IconTheme.get_for_display(Gtk.Widget().get_display())
+    theme.set_custom_theme(theme_name)
+    
+    icon_info = theme.lookup_icon(icon_name, None, size, 1, Gtk.TextDirection.NONE, 0)
+    if icon_info:
+        return icon_info.get_file().get_path()
+    return ""
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        print(get_icon_path(sys.argv[1]))
