@@ -4,14 +4,19 @@
 CONFIG_DIR="$HOME/.config/eww"
 EWW="/usr/bin/eww --config $CONFIG_DIR"
 
-# Always sync fresh layout/scripts from system template
+# Locate eww template: prefer installed system path, fall back to script dir
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+EWW_SRC="/etc/xdg/eww"
+[ ! -f "$EWW_SRC/eww.yuck" ] && EWW_SRC="$SCRIPT_DIR/eww"
+
+# Sync fresh layout/scripts from template
 mkdir -p "$CONFIG_DIR/scripts"
-\cp -f /etc/xdg/eww/eww.yuck "$CONFIG_DIR/eww.yuck"
-\cp -f /etc/xdg/eww/scripts/* "$CONFIG_DIR/scripts/"
+\cp -f "$EWW_SRC/eww.yuck" "$CONFIG_DIR/eww.yuck"
+\cp -f "$EWW_SRC/scripts/"* "$CONFIG_DIR/scripts/" 2>/dev/null || true
 chmod +x "$CONFIG_DIR/scripts/"*.sh 2>/dev/null || true
 
 # Sync eww.scss: always copy the template, then re-apply current colors on top
-\cp -f /etc/xdg/eww/eww.scss "$CONFIG_DIR/eww.scss"
+\cp -f "$EWW_SRC/eww.scss" "$CONFIG_DIR/eww.scss" 2>/dev/null || true
 bloom-generate-colors --no-reload 2>/dev/null || true
 
 # Kill any stale instance
