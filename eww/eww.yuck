@@ -97,7 +97,7 @@
     :anchor "top center")
   :stacking  "overlay"
   :exclusive false
-  :focusable true
+  :focusable false
   :namespace "bloom-bar"
   (bar-widget))
 
