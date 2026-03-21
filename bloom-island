@@ -22,5 +22,6 @@ sleep 0.3
 # Start notification interceptor in background
 "$CONFIG_DIR/scripts/notif-daemon.sh" &
 
-# Open unified bar+island window
+# Open bar and island as separate windows
 $EWW open bloom-bar
+$EWW open bloom-island-win
