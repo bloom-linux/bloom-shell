@@ -24,16 +24,46 @@ OUT_SH     = os.path.join(HOME, ".local/share/bloom/colors.sh")
 
 # ── Built-in palette presets ──────────────────────────────────────────────────
 PRESETS = {
-    "Bloom":      {"accent": "#B01828"},
-    "Ocean":      {"accent": "#1E6FBF"},
-    "Forest":     {"accent": "#2D7A3E"},
-    "Sunset":     {"accent": "#C2651A"},
-    "Amethyst":   {"accent": "#7B44C2"},
-    "Rose":       {"accent": "#C2447B"},
-    "Nord":       {"accent": "#81A1C1"},
-    "Dracula":    {"accent": "#BD93F9"},
-    "Catppuccin": {"accent": "#CBA6F7"},
-    "Gruvbox":    {"accent": "#D79921"},
+    "Bloom": {
+        "dark":  {"accent": "#B01828", "bg": "#0D0618", "surface": "#080312", "overlay": "#120920", "text": "#F0EEF4", "text_dim": "#88809A"},
+        "light": {"accent": "#B01828", "bg": "#F5F0F2", "surface": "#FDF8F9", "overlay": "#F0E8EB", "text": "#1A0A0C", "text_dim": "#6B5358"},
+    },
+    "Ocean": {
+        "dark":  {"accent": "#1E6FBF", "bg": "#060E18", "surface": "#030A12", "overlay": "#0A1525", "text": "#E8F0F8", "text_dim": "#7090A8"},
+        "light": {"accent": "#1E6FBF", "bg": "#F0F4F8", "surface": "#F8FAFC", "overlay": "#E5EDF5", "text": "#0A1520", "text_dim": "#506070"},
+    },
+    "Forest": {
+        "dark":  {"accent": "#2D7A3E", "bg": "#060E08", "surface": "#030A05", "overlay": "#0A1510", "text": "#E8F2EA", "text_dim": "#70906A"},
+        "light": {"accent": "#2D7A3E", "bg": "#F2F6F0", "surface": "#FAFCF8", "overlay": "#E8F0E5", "text": "#0A1A0C", "text_dim": "#506845"},
+    },
+    "Sunset": {
+        "dark":  {"accent": "#C2651A", "bg": "#130A04", "surface": "#0D0602", "overlay": "#1E1008", "text": "#F5EDE4", "text_dim": "#9A8070"},
+        "light": {"accent": "#C2651A", "bg": "#FAF3EC", "surface": "#FDFAF5", "overlay": "#F5EAD8", "text": "#1E0E06", "text_dim": "#7A6050"},
+    },
+    "Amethyst": {
+        "dark":  {"accent": "#7B44C2", "bg": "#0A0614", "surface": "#060310", "overlay": "#100820", "text": "#EDE8F8", "text_dim": "#8070A8"},
+        "light": {"accent": "#7B44C2", "bg": "#F4F0FA", "surface": "#FAF8FD", "overlay": "#ECE5F5", "text": "#120820", "text_dim": "#605078"},
+    },
+    "Rose": {
+        "dark":  {"accent": "#C2447B", "bg": "#13060C", "surface": "#0D0308", "overlay": "#1E0812", "text": "#F8E8EF", "text_dim": "#A87090"},
+        "light": {"accent": "#C2447B", "bg": "#FAF0F4", "surface": "#FDF8FA", "overlay": "#F5E5EC", "text": "#200612", "text_dim": "#785060"},
+    },
+    "Nord": {
+        "dark":  {"accent": "#81A1C1", "bg": "#1A1E2A", "surface": "#141820", "overlay": "#242A38", "text": "#ECEFF4", "text_dim": "#8090A8"},
+        "light": {"accent": "#5E81AC", "bg": "#E8ECF0", "surface": "#F0F4F8", "overlay": "#DCE4EC", "text": "#2E3440", "text_dim": "#607090"},
+    },
+    "Dracula": {
+        "dark":  {"accent": "#BD93F9", "bg": "#1A1624", "surface": "#130F1A", "overlay": "#221D30", "text": "#F8F8F2", "text_dim": "#9090B0"},
+        "light": {"accent": "#7B44C2", "bg": "#F4F0FA", "surface": "#FAF8FD", "overlay": "#ECE5F5", "text": "#120820", "text_dim": "#605078"},
+    },
+    "Catppuccin": {
+        "dark":  {"accent": "#CBA6F7", "bg": "#1E1E2E", "surface": "#181825", "overlay": "#313244", "text": "#CDD6F4", "text_dim": "#7F849C"},
+        "light": {"accent": "#8839EF", "bg": "#EFF1F5", "surface": "#E6E9EF", "overlay": "#CCD0DA", "text": "#4C4F69", "text_dim": "#9CA0B0"},
+    },
+    "Gruvbox": {
+        "dark":  {"accent": "#D79921", "bg": "#1D2021", "surface": "#161819", "overlay": "#282828", "text": "#EBDBB2", "text_dim": "#928374"},
+        "light": {"accent": "#B57614", "bg": "#FBF1C7", "surface": "#F9F5D7", "overlay": "#EBDBB2", "text": "#3C3836", "text_dim": "#7C6F64"},
+    },
 }
 
 DARK_DEFAULTS  = {"bg": "#0D0618", "surface": "#080312", "overlay": "#120920",
@@ -58,15 +88,20 @@ def read_config():
             return d
 
     scheme = get("scheme", "dark")
-    defs   = DARK_DEFAULTS if scheme == "dark" else LIGHT_DEFAULTS
+
+    # Use active preset as defaults so all palette colors are always set correctly
+    preset_name = get("preset", "Bloom")
+    preset      = PRESETS.get(preset_name, PRESETS["Bloom"])
+    preset_var  = preset.get(scheme, preset.get("dark", {}))
+    defs        = preset_var if preset_var else (DARK_DEFAULTS if scheme == "dark" else LIGHT_DEFAULTS)
 
     return {
-        "accent":   get("accent",   "#B01828"),
-        "bg":       get("bg",       defs["bg"]),
-        "surface":  get("surface",  defs["surface"]),
-        "overlay":  get("overlay",  defs["overlay"]),
-        "text":     get("text",     defs["text"]),
-        "text_dim": get("text_dim", defs["text_dim"]),
+        "accent":   get("accent",   defs.get("accent",   "#B01828")),
+        "bg":       get("bg",       defs.get("bg",       DARK_DEFAULTS["bg"])),
+        "surface":  get("surface",  defs.get("surface",  DARK_DEFAULTS["surface"])),
+        "overlay":  get("overlay",  defs.get("overlay",  DARK_DEFAULTS["overlay"])),
+        "text":     get("text",     defs.get("text",     DARK_DEFAULTS["text"])),
+        "text_dim": get("text_dim", defs.get("text_dim", DARK_DEFAULTS["text_dim"])),
         "scheme":   scheme,
         "font":     get("font",     "JetBrainsMono Nerd Font 11"),
     }
@@ -147,13 +182,14 @@ def generate(c):
                 f"$surface:       {rgba(bg, 0.75)};\n"
                 f"$border:        rgba(255, 255, 255, 0.15);\n"
                 f"$shadow:        {rgba('#000000', 0.37)};\n"
-                "/* -- End color tokens --- */"
+                "/* -- End color tokens ------------------------------------------------------ */"
             )
             # Replace the block between the ASCII markers
+            # Use flexible pattern to match any length of dashes in the end marker
             new_content = re.sub(
                 r"/\* Color tokens - regenerated by bloom-generate-colors \*/"
                 r".*?"
-                r"/\* -- End color tokens --- \*/",
+                r"/\* -- End color tokens[\s\-]+\*/",
                 tokens, content, flags=re.DOTALL
             )
             open(eww_main_scss, "w").write(new_content)
