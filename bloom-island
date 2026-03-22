@@ -15,6 +15,9 @@ mkdir -p "$CONFIG_DIR/scripts"
 \cp -f "$EWW_SRC/scripts/"* "$CONFIG_DIR/scripts/" 2>/dev/null || true
 chmod +x "$CONFIG_DIR/scripts/"*.sh 2>/dev/null || true
 
+# Fix invalid transition name in older templates
+sed -i 's/:transition "slide_down"/:transition "slidedown"/g' "$CONFIG_DIR/eww.yuck" 2>/dev/null || true
+
 # Sync eww.scss: always copy the template, then re-apply current colors on top
 \cp -f "$EWW_SRC/eww.scss" "$CONFIG_DIR/eww.scss" 2>/dev/null || true
 bloom-generate-colors --no-reload 2>/dev/null || true
@@ -23,6 +26,10 @@ bloom-generate-colors --no-reload 2>/dev/null || true
 $EWW kill 2>/dev/null || true
 pkill -f "notif-daemon.sh" 2>/dev/null || true
 sleep 0.3
+
+# Start daemon explicitly, wait for it to be ready
+$EWW daemon 2>/dev/null &
+sleep 0.8
 
 # Start notification interceptor in background
 "$CONFIG_DIR/scripts/notif-daemon.sh" &
