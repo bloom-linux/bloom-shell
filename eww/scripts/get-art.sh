@@ -16,11 +16,7 @@ if [[ "$url" == http* ]]; then
     hash=$(printf '%s' "$url" | md5sum | cut -c1-12)
     cache="/tmp/bloom-art-${hash}.jpg"
     if [[ ! -f "$cache" ]]; then
-        # Download in background; return empty now, next poll will find the file
-        curl -fsSL --max-time 10 -o "${cache}.tmp" "$url" 2>/dev/null \
-            && mv "${cache}.tmp" "$cache" &
-        echo ""
-        exit 0
+        curl -fsSL --max-time 4 -o "$cache" "$url" 2>/dev/null || { echo ""; exit 0; }
     fi
     echo "$cache"
     exit 0

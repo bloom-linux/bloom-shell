@@ -25,8 +25,27 @@ OUT_SH     = os.path.join(HOME, ".local/share/bloom/colors.sh")
 # ── Built-in palette presets ──────────────────────────────────────────────────
 PRESETS = {
     "Bloom": {
-        "dark":  {"accent": "#B01828", "bg": "#0D0618", "surface": "#080312", "overlay": "#120920", "text": "#F0EEF4", "text_dim": "#88809A"},
-        "light": {"accent": "#B01828", "bg": "#F5F0F2", "surface": "#FDF8F9", "overlay": "#F0E8EB", "text": "#1A0A0C", "text_dim": "#6B5358"},
+        # Retuned from the original #B01828 (saturated blood red) to a muted
+        # burgundy that reads as warm-accent rather than gamer-aesthetic.
+        # Background drifts warmer and lighter so pure black (which looked
+        # oled-cyberpunk) is softened to a near-neutral charcoal.
+        "dark":  {"accent": "#B85668", "bg": "#161319", "surface": "#100D12", "overlay": "#1E1A20", "text": "#ECE8EC", "text_dim": "#8A8690"},
+        "light": {"accent": "#A14050", "bg": "#F4F1F3", "surface": "#FBF9FA", "overlay": "#EBE6E9", "text": "#1C181B", "text_dim": "#6A6268"},
+    },
+    # Three neutral/professional presets aimed at "polished desktop OS" vibe
+    # rather than cyberpunk/gamer/hacker aesthetic. Pick one and the whole UI
+    # reads calmer and more serious.
+    "Slate": {
+        "dark":  {"accent": "#7A9CC6", "bg": "#1A1D24", "surface": "#14161C", "overlay": "#242830", "text": "#E2E6EC", "text_dim": "#858B98"},
+        "light": {"accent": "#3D5A7A", "bg": "#F0F2F5", "surface": "#FFFFFF", "overlay": "#E5E8EC", "text": "#1A1E24", "text_dim": "#5A6270"},
+    },
+    "Stone": {
+        "dark":  {"accent": "#B29478", "bg": "#1E1C1A", "surface": "#181614", "overlay": "#2A2824", "text": "#EAE7E3", "text_dim": "#98918A"},
+        "light": {"accent": "#7A6350", "bg": "#F5F2EE", "surface": "#FDFCFA", "overlay": "#EBE6E0", "text": "#1C1816", "text_dim": "#6B635A"},
+    },
+    "Graphite": {
+        "dark":  {"accent": "#A0A5B5", "bg": "#1B1C20", "surface": "#15161A", "overlay": "#26282E", "text": "#E4E6EB", "text_dim": "#888B94"},
+        "light": {"accent": "#5A6070", "bg": "#F2F3F5", "surface": "#FBFCFD", "overlay": "#E6E8EC", "text": "#1B1C20", "text_dim": "#5A6070"},
     },
     "Ocean": {
         "dark":  {"accent": "#1E6FBF", "bg": "#060E18", "surface": "#030A12", "overlay": "#0A1525", "text": "#E8F0F8", "text_dim": "#7090A8"},
