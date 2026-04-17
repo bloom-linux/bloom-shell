@@ -133,7 +133,7 @@
       :space-evenly false
       :spacing     4
       (workspaces)
-      (button :class "bar-btn" :onclick "hyprctl dispatch exec -- rofi -show drun" "󰅘")
+      (button :class "bar-btn" :onclick "hyprctl dispatch exec -- rofi -show drun" "󰀻")
       (button :class "bar-btn" :onclick "hyprctl dispatch exec -- bloom-install" "󰇚")
       (button
         :class   {bar-bt == "on" ? "bar-mod bar-bt" : "bar-mod bar-bt off"}

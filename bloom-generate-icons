@@ -166,8 +166,48 @@ def apply_symlinks(resolved):
         pass
 
 
+def sync_bloom_current_alias(theme_name):
+    """Maintain ~/.icons/bloom-current as a symlink to the active theme dir.
+
+    Apps that don't track GTK icon-theme changes live (rofi, notably) can
+    reference the constant name "bloom-current" forever and always get the
+    user's selected theme. When the user picks a new theme in Bloom
+    Settings, this symlink gets re-pointed and the next launch of those
+    apps picks up the change without any config rewrite.
+    """
+    search_dirs = [
+        os.path.expanduser("~/.local/share/icons"),
+        "/usr/local/share/icons",
+        "/usr/share/icons",
+    ]
+    target = None
+    for d in search_dirs:
+        candidate = os.path.join(d, theme_name)
+        if os.path.isdir(candidate):
+            target = candidate
+            break
+    if not target:
+        return
+
+    link_dir = os.path.expanduser("~/.icons")
+    os.makedirs(link_dir, exist_ok=True)
+    link_path = os.path.join(link_dir, "bloom-current")
+    try:
+        if os.path.islink(link_path) or os.path.exists(link_path):
+            os.remove(link_path)
+        os.symlink(target, link_path)
+    except Exception as e:
+        print(f"bloom-generate-icons: couldn't update bloom-current symlink: {e}",
+              file=sys.stderr)
+
+
 def main():
     theme_name = get_theme_name()
+
+    # Keep ~/.icons/bloom-current pointed at the active theme so rofi
+    # etc. don't need to know the actual theme name.
+    if theme_name:
+        sync_bloom_current_alias(theme_name)
 
     # We need a running GTK app context to use IconTheme
     app = Gtk.Application(application_id="bloom.generate-icons")
